@@ -227,6 +227,8 @@ def cli() -> None:
         help="Always include ANSI color in the output, even if not writing to a TTY",
     )
 
+    parser.add_argument("--perf-study", action="store_true")
+
     ### Parse and validate
     args = parser.parse_args()
     if args.version:
@@ -282,4 +284,5 @@ def cli() -> None:
             exit_on_error=args.error,
             autofix=args.autofix,
             dangerously_allow_arbitrary_code_execution_from_rules=args.dangerously_allow_arbitrary_code_execution_from_rules,
+            perf_study=args.perf_study,
         )

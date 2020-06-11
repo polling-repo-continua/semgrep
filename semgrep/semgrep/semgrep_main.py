@@ -1,5 +1,6 @@
 import json
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 from typing import Dict
@@ -22,6 +23,7 @@ from semgrep.error import InvalidRuleSchemaError
 from semgrep.error import MISSING_CONFIG_EXIT_CODE
 from semgrep.error import SemgrepError
 from semgrep.output import build_output
+from semgrep.perf import Tracker
 from semgrep.rule import Rule
 from semgrep.rule_lang import YamlTree
 from semgrep.rule_match import RuleMatch
@@ -237,6 +239,7 @@ def main(
     exit_on_error: bool,
     autofix: bool,
     dangerously_allow_arbitrary_code_execution_from_rules: bool,
+    perf_study: bool,
 ) -> str:
     # get the proper paths for targets i.e. handle base path of /home/repo when it exists in docker
     targets = semgrep.config_resolver.resolve_targets(target)
@@ -284,14 +287,27 @@ def main(
             )
 
     # actually invoke semgrep
-    rule_matches_by_rule, debug_steps_by_rule, semgrep_errors = CoreRunner(
+    runner = CoreRunner(
         allow_exec=dangerously_allow_arbitrary_code_execution_from_rules,
         jobs=jobs,
         exclude=exclude,
         include=include,
         exclude_dir=exclude_dir,
         include_dir=include_dir,
-    ).invoke_semgrep(targets, all_rules)
+    )
+    if perf_study:
+        for rule in all_rules:
+            for _target in targets:
+                t1 = datetime.now()
+                runner.invoke_semgrep([_target], [rule])
+                t2 = datetime.now()
+                Tracker.record(t2 - t1, rule=rule, file=_target)
+                Tracker.dump(sys.stdout)
+        return "perf-study. No regular output"
+
+    rule_matches_by_rule, debug_steps_by_rule, semgrep_errors = runner.invoke_semgrep(
+        targets, all_rules
+    )
 
     if output_format == OutputFormat.TEXT:
         for error in semgrep_errors:

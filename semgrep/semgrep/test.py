@@ -190,6 +190,7 @@ def invoke_semgrep(
             strict=strict,
             exit_on_error=False,
             autofix=False,
+            perf_study=False,
             dangerously_allow_arbitrary_code_execution_from_rules=unsafe,
         )
     )
